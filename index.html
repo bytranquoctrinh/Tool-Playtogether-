@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>PlayTogether Fish Tool</title>
+
+<!-- Logo & Manifest -->
+<link rel="icon" href="icons/icon-192.png" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#000000"/>
+
+<style>
+  body{background:#000;color:#39ff14;font-family:monospace;margin:0;padding:10px}
+  h2{font-size:18px;text-align:center;margin:10px 0;color:#fff}
+  button{display:block;margin:0 auto 15px auto;background:#000;border:1px solid #39ff14;
+    color:#39ff14;padding:12px 20px;font-size:16px;border-radius:6px}
+  .fish{border:1px solid #39ff14;margin:10px 0;padding:10px;border-radius:8px}
+  .active{border-color:#fff;box-shadow:0 0 10px #39ff14}
+  .title{color:#fff;font-weight:bold;font-size:16px;margin-bottom:5px}
+  .row{margin:2px 0;font-size:14px}
+  .pred{color:#9f9;margin-top:4px;font-size:13px}
+</style>
+</head>
+<body>
+<h2>🎣 PlayTogether Fish Tool</h2>
+<button id="btn">GỢI Ý</button>
+<div id="list"></div>
+
+<script>
+// ====== Đăng ký service worker (để thành PWA) ======
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').then(() => {
+    console.log("Service Worker registered");
+  });
+}
+
+// ====== DATA & LOGIC ======
+const fishData=[
+  {name:'Cá tầm',time:'Ban ngày',minute:'',shadow:'4',loc:'Ao khu trung tâm'},
+  {name:'Cá xiêm rồng trắng',time:'Ban đêm',minute:'',shadow:'1',loc:'Đài phun nước Khu Trung tâm'},
+  {name:'Sứa nomura',time:'Cả ngày',minute:'',shadow:'4',loc:'Tất cả các vùng biển'},
+  {name:'Thiên sứ biển',time:'Cả ngày',minute:'',shadow:'1',loc:'Biển sâu'},
+  {name:'Cá voi trắng',time:'Cả ngày',minute:'',shadow:'4',loc:'Biển sâu'},
+  {name:'Kỳ lân biển',time:'Ban đêm',minute:'55-07 | 25-37',shadow:'4',loc:'Biển sâu'},
+  {name:'Cua nhện',time:'Ban đêm',minute:'55-07 | 25-37',shadow:'4',loc:'Biển sâu'},
+  {name:'Tôm hùm xanh',time:'Ban đêm',minute:'',shadow:'2',loc:'Biển sâu, Thuyền'},
+  {name:'Cá voi sát thủ',time:'Ban đêm',minute:'55-05 | 25-35',shadow:'5 (thường)/1 (mini)',loc:'Biển sâu, Thuyền'},
+  {name:'Cá mập mũi cưa',time:'Ban đêm',minute:'',shadow:'5 (thường)/1 (mini)',loc:'Biển sâu, Thuyền'},
+  {name:'Cá nhà táng',time:'Ban đêm',minute:'00-05 | 30-35',shadow:'5 (thường)/1 (mini)',loc:'Thuyền, Hố Xanh'},
+  {name:'Cá nhám voi',time:'Ban đêm',minute:'00-05 | 30-35',shadow:'5',loc:'Thuyền, Hố Xanh'},
+  {name:'Cá nhám búa',time:'Cả ngày',minute:'',shadow:'5 (thường)/1 (mini)',loc:'Biển sâu, Thuyền, Hải đăng'},
+  {name:'Hải cầu bắc cực',time:'Cả ngày',minute:'00-05 | 30-35',shadow:'4',loc:'Hải đăng, Hố Xanh'},
+  {name:'Cá voi xanh',time:'Ban ngày',minute:'13-18 | 43-48',shadow:'5',loc:'Hải đăng'},
+  {name:'Cá heo không vây',time:'Ban ngày',minute:'',shadow:'4',loc:'Hải đăng'},
+  {name:'Cá heo hồng',time:'Ban ngày',minute:'15-17 | 45-47',shadow:'5 (thường)/1 (mini)',loc:'Trung tâm mua sắm'},
+  {name:'Cá cúi',time:'Ban ngày',minute:'13-18 | 43-48',shadow:'4',loc:'Trung tâm mua sắm'},
+  {name:'Kỳ nhông Axolotl',time:'Ban ngày',minute:'',shadow:'1',loc:'Trung tâm mua sắm, Hồ bơi trong nhà'},
+  {name:'Cá hổ',time:'Ban ngày',minute:'',shadow:'4',loc:'Trung tâm mua sắm, Hồ bơi trong nhà'},
+  {name:'Chi hải tượng',time:'Ban ngày',minute:'08-24 | 38-54',shadow:'4',loc:'Bãi biển'},
+  {name:'Hải mã',time:'Ban ngày',minute:'08-24 | 38-54',shadow:'4',loc:'Bãi biển'},
+  {name:'Rùa da',time:'Ban ngày',minute:'08-24 | 38-54',shadow:'4',loc:'Bãi biển'},
+  {name:'Rùa biển',time:'Ban ngày',minute:'10-20 | 40-50',shadow:'4',loc:'Bãi biển'},
+  {name:'Cá lóc môi trề',time:'Ban ngày',minute:'',shadow:'4',loc:'Hồ Khu Cắm trại'},
+  {name:'Kỳ nhông khổng lồ',time:'Ban đêm',minute:'25-35 | 55-05',shadow:'3',loc:'Hồ Khu Cắm trại, Thác nước'},
+  {name:'Cá sấu mõm dài',time:'Ban đêm',minute:'25-35 | 55-05',shadow:'4',loc:'Thác nước'},
+  {name:'Cá chiên',time:'Ban đêm',minute:'',shadow:'4',loc:'Hồ Khu Cắm trại, Thác nước'},
+  {name:'Cá hải tượng',time:'Cả ngày',minute:'',shadow:'4',loc:'Hồ Khu Cắm trại, Thác nước'},
+  {name:'Cá mập Greenland',time:'Ban đêm',minute:'',shadow:'5',loc:'Hố xanh'},
+  {name:'Cá mập yêu tinh',time:'Ban đêm',minute:'30-35 | 00-05',shadow:'4',loc:'Hố xanh'},
+  {name:'Cá mái chèo',time:'Ban đêm',minute:'30-35 | 00-05',shadow:'5',loc:'Hố xanh'},
+  {name:'Cá nhám mang xếp',time:'Cả ngày',minute:'30-35 | 00-05',shadow:'4',loc:'Hố xanh'},
+  {name:'Mực khổng lồ',time:'Cả ngày',minute:'',shadow:'5',loc:'Hố xanh'},
+  {name:'Cá sấu',time:'Cả ngày',minute:'20-30 | 55-05',shadow:'5 (thường)/1 (mini)',loc:'Hồ bơi trong nhà'},
+  {name:'Baba',time:'Cả ngày',minute:'',shadow:'2',loc:'Ao, Hồ bơi Khu Trung tâm'}
+];
+
+function predictRange(minuteStr){
+  if(!minuteStr) return "---";
+  return minuteStr.split('|').map(pair=>{
+    let [a,b]=pair.trim().split('-').map(x=>parseInt(x));
+    let na=(a+17)%60;
+    let nb=(b+17)%60;
+    return (na<10?"0"+na:na)+"-"+(nb<10?"0"+nb:nb);
+  }).join(' | ');
+}
+
+function inDay(h){return h>=6&&h<18;}
+function parseRanges(str){
+  if(!str) return [];
+  return str.split('|').map(s=>s.trim()).map(r=>{
+    let [a,b]=r.split('-').map(x=>parseInt(x));
+    return {a:a,b:b};
+  });
+}
+function inRange(min,a,b){return a<=b?(min>=a&&min<=b):(min>=a||min<=b);}
+
+document.getElementById("btn").onclick=function(){
+  const now=new Date();
+  const h=now.getHours(),m=now.getMinutes();
+  const isDay=inDay(h);
+  let arr=[];
+  fishData.forEach(f=>{
+    let active=false;
+    let ranges=parseRanges(f.minute);
+    if(ranges.length){
+      active=ranges.some(r=>inRange(m,r.a,r.b));
+    }
+    if(f.time=="Ban ngày"&&!isDay) active=false;
+    if(f.time=="Ban đêm"&&isDay) active=false;
+    arr.push({...f,active});
+  });
+  arr.sort((a,b)=>b.active-a.active);
+  const list=document.getElementById("list");
+  list.innerHTML="";
+  arr.forEach(f=>{
+    const div=document.createElement("div");
+    div.className="fish"+(f.active?" active":"");
+    div.innerHTML=`
+      <div class="title">${f.name}</div>
+      <div class="row">⏱ Khung gốc: ${f.minute||'---'}</div>
+      <div class="row">📅 Khung dự đoán: <span class="pred">${predictRange(f.minute)}</span></div>
+      <div class="row">🌞/🌙: ${f.time}</div>
+      <div class="row">📍 Địa điểm: ${f.loc}</div>
+      <div class="row">🎯 Bóng: ${f.shadow}</div>`;
+    list.appendChild(div);
+  });
+}
+</script>
+</body>
+</html>
